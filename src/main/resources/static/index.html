@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Java Maven Application</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f5f7fb;
+            --panel: #ffffff;
+            --text: #172033;
+            --muted: #5f6b85;
+            --accent: #2563eb;
+            --accent-soft: #dbeafe;
+            --border: #d8e0ee;
+            --good: #15803d;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(180deg, #eef4ff 0%, var(--bg) 35%, #eef2f7 100%);
+            color: var(--text);
+        }
+
+        .wrap {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 48px 20px 64px;
+        }
+
+        .hero {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 10px 30px rgba(23, 32, 51, 0.06);
+        }
+
+        .eyebrow {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        h1 {
+            margin: 18px 0 12px;
+            font-size: 38px;
+            line-height: 1.1;
+        }
+
+        p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-top: 22px;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 18px;
+        }
+
+        .card h2 {
+            margin: 0 0 8px;
+            font-size: 16px;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: #ecfdf3;
+            color: var(--good);
+            font-weight: 700;
+            margin-top: 10px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--good);
+        }
+
+        .meta {
+            margin-top: 22px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        code {
+            background: #eef2ff;
+            padding: 2px 6px;
+            border-radius: 6px;
+            color: #1d4ed8;
+        }
+    </style>
+</head>
+<body>
+<main class="wrap">
+    <section class="hero">
+        <span class="eyebrow">Spring Boot demo</span>
+        <h1>Java Maven Application</h1>
+        <p>A simple web app with a small status API and a cleaner front page.</p>
+
+        <div class="status" id="status">
+            <span class="dot"></span>
+            <span>Checking status...</span>
+        </div>
+    </section>
+
+    <section class="grid" aria-label="App summary">
+        <article class="card">
+            <h2>What it does</h2>
+            <p>Serves a static homepage and exposes a JSON endpoint at <code>/api/status</code>.</p>
+        </article>
+        <article class="card">
+            <h2>Startup behavior</h2>
+            <p>The app still logs <code>Java app started</code> on boot.</p>
+        </article>
+        <article class="card">
+            <h2>Response format</h2>
+            <p>Returns a small payload with status, app name, and a short message.</p>
+        </article>
+    </section>
+
+    <p class="meta">This is still the same build setup. Only the app surface changed.</p>
+</main>
+
+<script>
+    fetch('/api/status')
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+            var status = document.getElementById('status');
+            status.innerHTML = '<span class="dot"></span><span>' + data.app + ' is ' + data.status + '</span>';
+        })
+        .catch(function () {
+            var status = document.getElementById('status');
+            status.innerHTML = '<span class="dot"></span><span>Status unavailable</span>';
+            status.style.background = '#fef3f2';
+            status.style.color = '#b42318';
+        });
+</script>
+</body>
+</html>
