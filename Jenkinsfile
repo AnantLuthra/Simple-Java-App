@@ -24,7 +24,7 @@ pipeline {
                 withCredentials([
                     usernamePassword(credentialsId: 'server-credentials', usernameVariable: 'USER', passwordVariable: 'PASSW')
                 ]) {
-                    sh "Usern & passw got through 'with creds' - $USER, $PASSW"
+                    sh "Usern & passw got through 'with creds' - $USER"
                 }
                 echo "building image"
             }
