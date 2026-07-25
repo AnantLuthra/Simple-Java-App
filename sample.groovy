@@ -17,4 +17,4 @@ def build_image(){
     echo "building image"
 }
 
-export this
+return this
