@@ -4,7 +4,7 @@ pipeline {
     agent any
     environment {
         NAME = 'jenkins-pro'
-        SERVER_CREDS = credentials('server-credentials')
+        // SERVER_CREDS = credentials('server-credentials')
     }
     stages {
         stage("init") {
@@ -24,14 +24,14 @@ pipeline {
                 withCredentials([
                     usernamePassword(credentialsId: 'server-credentials', usernameVariable: 'USER', passwordVariable: 'PASSW')
                 ]) {
-                    sh "Usern & passw got through 'with creds' - $USER"
+                    sh 'echo "Usern and passw got through with creds - $USER"'
                 }
                 echo "building image"
             }
         }
         stage("deploy") {
             steps {
-                echo "Credentials got through env. - ${SERVER_CREDS}"
+                // echo "Credentials got through env. - ${SERVER_CREDS}"
                 echo "deploying"
             }
         }
