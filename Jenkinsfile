@@ -1,4 +1,4 @@
-// def gv
+def gv
 
 pipeline {
     agent any
@@ -14,8 +14,10 @@ pipeline {
     stages {
         stage("init") {
             steps {
-                echo "Hello from ${NAME}"
-                echo "Init stage started..."
+                script{
+                    gv = load "sample.groovy"
+                    gv.init()
+                }
             }
         }
         stage("testing") {
@@ -26,7 +28,7 @@ pipeline {
             }
             steps{
                 script{
-                    echo "Running tests..."
+                    gv.testing()
                 }
             }
         }
@@ -37,13 +39,9 @@ pipeline {
         }
         stage("build image") {
             steps {
-                echo "Now with credentials wrapper"
-                withCredentials([
-                    usernamePassword(credentialsId: 'server-credentials', usernameVariable: 'USER', passwordVariable: 'PASSW')
-                ]) {
-                    sh 'echo "Usern and passw got through with creds - $USER"'
+                script{
+                    gv.build_image()
                 }
-                echo "building image"
             }
         }
         stage("deploy") {
