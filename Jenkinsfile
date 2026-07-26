@@ -2,10 +2,14 @@ def gv
 
 pipeline {
     agent any
+    tools{
+        maven 'maven-3.9'
+    }
     stages {
         stage("init") {
             steps {
                 script {
+                    echo "Initializing the script"
                     gv = load "script.groovy"
                 }
             }
@@ -13,16 +17,14 @@ pipeline {
         stage("build jar") {
             steps {
                 script {
-                    echo "building jar"
-                    //gv.buildJar()
+                    gv.buildJar()
                 }
             }
         }
         stage("build image") {
             steps {
                 script {
-                    echo "building image"
-                    //gv.buildImage()
+                    gv.buildImage()
                 }
             }
         }
@@ -30,9 +32,17 @@ pipeline {
             steps {
                 script {
                     echo "deploying"
-                    //gv.deployApp()
+                    gv.deployApp()
                 }
             }
         }
-    }   
+    }
+    post {
+        success{
+            echo "All Success!"
+        }
+        failure{
+            echo "Something went wrong..."
+        }
+    }  
 }
