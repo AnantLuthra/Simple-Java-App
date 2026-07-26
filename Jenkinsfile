@@ -40,14 +40,29 @@ pipeline {
         stage("build image") {
             steps {
                 script{
+                    env.JAR_HEALTH = input message: "Is built jar working fine?", parameters: [choice(name: "ONE", choices: ["Yes", "No"], description: "")]
+                    echo "JAR Health: ${env.JAR_HEALTH}"
                     gv.build_image()
                 }
             }
         }
         stage("deploy") {
+            input{
+                message "What should we do with this build?"
+                parameters {
+                    choice(name: "Deploy", choices: ["Yes", "No"], description: "Should we proceed?")
+                    booleanParam(name: "SAVE_ARTIFACTS", defaultValue: true, description: "Should we save artifacts?")
+                }
+            }
+            when {
+                expression{
+                    env.Deploy == "Yes"
+                }
+            }
             steps {
                 // echo "Credentials got through env. - ${SERVER_CREDS}"
                 echo "deploying"
+                echo "Save artifacts is: ${env.SAVE_ARTIFACTS}"
             }
         }
     }   
