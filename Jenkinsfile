@@ -25,7 +25,7 @@ pipeline {
         stage("build image") {
             steps {
                 script {
-                    buildImage()    
+                    buildImage 'anantluthra/simple-java-app:2.0'
                 }
             }
         }
