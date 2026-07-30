@@ -22,10 +22,12 @@ pipeline {
                 }
             }
         }
-        stage("build image") {
+        stage("build & push image") {
             steps {
                 script {
                     buildImage 'anantluthra/simple-java-app:2.0'
+                    dockerLogin()
+                    dockerPush 'anantluthra/simple-java-app:2.0'
                 }
             }
         }
