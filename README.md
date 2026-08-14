@@ -27,6 +27,8 @@ This branch shows the application pipeline wired to a Jenkins Shared Library.
 
 This branch expects a Jenkins shared library named `jenkins-shared-library`.
 
+Shared library repo: `https://github.com/AnantLuthra/jenkins-shared-library`
+
 The library provides reusable steps from:
 
 - `vars/buildJar.groovy`
