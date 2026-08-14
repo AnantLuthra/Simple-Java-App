@@ -43,3 +43,4 @@ This branch is the baseline Jenkins pipeline for the Java Maven app.
 
 - This branch is the clean base version of the pipeline.
 - It keeps the build, image, and deploy logic in one place without using a shared library.
+- Other related branches in this repo are `jenkins-job` for the exploratory Jenkins job flow and `jen-shared-lib` for the shared-library based pipeline.
