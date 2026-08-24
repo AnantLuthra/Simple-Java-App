@@ -48,6 +48,21 @@ pipeline {
                 }
             }
         }
+        stage("commit version update"){
+            steps{
+                script{
+                    withCredentials([usernamePassword(credentialsId: 'git-credentials', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
+                        sh 'git config --global user.email "jenkins@example.com"'
+                        sh 'git config --global user.name "jenkins"'
+
+                        sh "git remote set-url origin https://${USERNAME}:${PASSWORD}@github.com/AnantLuthra/Simple-Java-App.git"
+                        sh 'git add .'
+                        sh 'git commit -m "ci: version bump"'
+                        sh 'git push origin HEAD:master'
+                    }
+                }
+            }
+        }
     }
     post {
         success{
