@@ -67,10 +67,10 @@ password $PASSWORD
 EOF
 
                             chmod 600 ~/.netrc
-
+                            git config --global credential.helper netrc
                             git add .
                             git commit -m "ci: version bump"
-                            git push origin HEAD:master
+                            git push https://github.com/AnantLuthra/Simple-Java-App.git HEAD:master
 
                             rm -f ~/.netrc
                         '''
