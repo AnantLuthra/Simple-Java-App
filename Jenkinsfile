@@ -51,13 +51,29 @@ pipeline {
         stage("commit version update"){
             steps{
                 script{
-                    withCredentials([usernamePassword(credentialsId: 'git-credentials', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
-                        sh 'git config user.email "jenkins@example.com"'
-                        sh 'git config user.name "jenkins"'
+                    withCredentials([usernamePassword(
+                        credentialsId: 'git-credentials',
+                        usernameVariable: 'USERNAME',
+                        passwordVariable: 'PASSWORD'
+                    )]) {
+                        sh '''
+                            git config user.email "jenkins@example.com"
+                            git config user.name "jenkins"
 
-                        sh 'git add .'
-                        sh 'git commit -m "ci: version bump"'
-                        sh 'git push origin HEAD:master'
+                            cat > ~/.netrc <<EOF
+                    machine github.com
+                    login $USERNAME
+                    password $PASSWORD
+                    EOF
+
+                            chmod 600 ~/.netrc
+
+                            git add .
+                            git commit -m "ci: version bump"
+                            git push origin HEAD:master
+
+                            rm -f ~/.netrc
+                        '''
                     }
                 }
             }
