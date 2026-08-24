@@ -59,7 +59,6 @@ pipeline {
                 sh '''
                     git config user.email "jenkins@example.com"
                     git config user.name "jenkins"
-
                     git add .
                     git commit -m "ci: version bump"
 
