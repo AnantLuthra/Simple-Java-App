@@ -48,31 +48,24 @@ pipeline {
                 }
             }
         }
-        stage("commit version update"){
-            steps{
-                script{
+        stage("commit version update") {
+            steps {
+                script {
                     withCredentials([usernamePassword(
                         credentialsId: 'git-credentials',
                         usernameVariable: 'USERNAME',
                         passwordVariable: 'PASSWORD'
                     )]) {
+
                         sh '''
                             git config user.email "jenkins@example.com"
                             git config user.name "jenkins"
 
-                            cat > ~/.netrc <<EOF
-machine github.com
-login $USERNAME
-password $PASSWORD
-EOF
-
-                            chmod 600 ~/.netrc
-                            git config --global credential.helper netrc
                             git add .
                             git commit -m "ci: version bump"
-                            git push https://github.com/AnantLuthra/Simple-Java-App.git HEAD:master
 
-                            rm -f ~/.netrc
+                            git -c credential.helper='!f() { echo username=$USERNAME; echo password=$PASSWORD; }; f' \
+                            push https://github.com/AnantLuthra/Simple-Java-App.git HEAD:master
                         '''
                     }
                 }
