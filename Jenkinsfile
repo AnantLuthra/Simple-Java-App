@@ -1,3 +1,9 @@
+// library identifier: 'jenkins-shared-library@master', retriever: modernSCM(
+//     [$class: 'GitSCMSource',
+//     remote: 'https://github.com/AnantLuthra/jenkins-shared-library.git',
+//     credentialsId: 'git-credentials']
+// )
+
 @Library('jenkins-shared-library')
 def gv
 
