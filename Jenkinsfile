@@ -61,10 +61,10 @@ pipeline {
                             git config user.name "jenkins"
 
                             cat > ~/.netrc <<EOF
-                    machine github.com
-                    login $USERNAME
-                    password $PASSWORD
-                    EOF
+machine github.com
+login $USERNAME
+password $PASSWORD
+EOF
 
                             chmod 600 ~/.netrc
 
