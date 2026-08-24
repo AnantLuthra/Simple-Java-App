@@ -10,7 +10,7 @@ pipeline {
             steps {
                 script {
                     echo "Initializing the script"
-                    echo "Checking github integration.."
+                    echo "Checking github integration..."
                     gv = load "script.groovy"
                 }
             }
