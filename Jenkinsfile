@@ -4,54 +4,38 @@
 //     credentialsId: 'git-credentials']
 // )
 
-@Library('jenkins-shared-library')
-def gv
 
-pipeline {
+#!/usr/bin.env groovy
+
+pipeline {   
     agent any
-    tools{
-        maven 'maven-3.9'
-    }
     stages {
-        stage("init") {
+        stage("test") {
             steps {
                 script {
-                    echo "Initializing the script"
-                    gv = load "script.groovy"
+                    echo "Testing the application..."
+
                 }
             }
         }
-        stage("build jar") {
+        stage("build") {
             steps {
                 script {
-                    buildJar()
+                    echo "Building the application..."
                 }
             }
         }
-        stage("build & push image") {
-            steps {
-                script {
-                    buildImage 'anantluthra/simple-java-app:2.0'
-                    dockerLogin()
-                    dockerPush 'anantluthra/simple-java-app:2.0'
-                }
-            }
-        }
+
         stage("deploy") {
             steps {
                 script {
-                    echo "deploying"
-                    gv.deployApp()
+                    def docCmd = 'docker run -p 3000:3080 -d anantluthra/nodejs-app:1.0'
+                    sshagent(credentials: ['ec2-server-key'], executable: '') {
+                        "ssh -o StrictHostKeyChecking=no ec2-user@13.204.46.200 ${docCmd}"
+                    }
                 }
             }
-        }
+        }               
     }
-    post {
-        success{
-            echo "All Success!"
-        }
-        failure{
-            echo "Something went wrong..."
-        }
-    }  
-}
+} 
+
