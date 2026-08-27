@@ -4,9 +4,6 @@
 //     credentialsId: 'git-credentials']
 // )
 
-
-#!/usr/bin.env groovy
-
 pipeline {   
     agent any
     stages {
