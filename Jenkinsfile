@@ -28,7 +28,7 @@ pipeline {
                 script {
                     def docCmd = 'docker run -p 3000:3080 -d anantluthra/nodejs-app:1.0'
                     sshagent(credentials: ['ec2-server-key'], executable: '') {
-                        "ssh -o StrictHostKeyChecking=no ec2-user@13.204.46.200 ${docCmd}"
+                        sh "ssh -o StrictHostKeyChecking=no ec2-user@13.204.46.200 ${docCmd}"
                     }
                 }
             }
