@@ -1,6 +1,14 @@
 # Java Maven App - Jenkins Pipeline
 
-This branch has the full Jenkins pipeline for the Java Maven app.
+Complete the CI/CD Pipeline: Docker Compose and Dynamic Versioning
+
+## Technologies used
+
+- AWS, Jenkins, Docker, Linux, Git, Java, Maven, Docker Hub
+
+## Project Description
+
+This project implements a complete CI/CD flow for the Java Maven application. It covers dynamic versioning, artifact creation, Docker image publishing, and deployment through Docker Compose on EC2.
 
 ## What it does
 
@@ -8,7 +16,7 @@ This branch has the full Jenkins pipeline for the Java Maven app.
 - Increments the Maven version before the build.
 - Builds the application with Maven.
 - Builds and pushes the Docker image to Docker Hub.
-- Runs the deploy step from the helper script.
+- Deploys the new application version on EC2 using Docker Compose and `server-cmds.sh`.
 - Commits the version update back to `master`.
 
 ## Pipeline flow
@@ -29,8 +37,10 @@ This branch has the full Jenkins pipeline for the Java Maven app.
    - Logs in to Docker Hub with Jenkins credentials.
    - Pushes the image to Docker Hub.
 5. `deploy`
-   - Runs `gv.deployApp()`.
-   - Handles the deploy step from the helper script.
+   - Copies `docker-compose.yaml` and `server-cmds.sh` to the EC2 host.
+   - Uses `server-cmds.sh` to export the target image and start the stack.
+   - Starts the updated application container with Docker Compose.
+   - Uses Docker Compose to manage the application container and the Postgres service.
 6. `commit version update`
    - Configures the Git user in the Jenkins agent.
    - Commits the version bump.
@@ -40,6 +50,8 @@ This branch has the full Jenkins pipeline for the Java Maven app.
 
 - `Jenkinsfile` - declarative Jenkins pipeline.
 - `script.groovy` - local pipeline helper functions.
+- `server-cmds.sh` - remote deployment helper script.
+- `docker-compose.yaml` - Docker Compose definition for the app and Postgres.
 - `src/main` - Spring Boot application source.
 - `src/test` - application tests.
 - `Dockerfile` - container build definition.
@@ -56,4 +68,5 @@ This branch has the full Jenkins pipeline for the Java Maven app.
 - `Dockerfile` uses `amazoncorretto:17-alpine-jdk`, exposes port `8080`, and runs the packaged jar from `/usr/app`.
 - The image tag is based on the application version plus the Jenkins build number.
 - The pipeline keeps the build, image, deploy, and version update logic in one place without using a shared library.
-- Other related branches in this repo are `jenkins-job` for the exploratory Jenkins job flow and `jen-shared-lib` for the shared-library based pipeline.
+- The deploy step uses a shell script plus Docker Compose instead of a manual container run command.
+- Other related branches in this repo are `jenkins-job` for the exploratory Jenkins job flow, `jen-shared-lib` for the shared-library based pipeline, and `cd-pipe` for the complete CI/CD flow with a project-specific shared library.
