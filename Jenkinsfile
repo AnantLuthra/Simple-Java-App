@@ -5,6 +5,9 @@ pipeline {
     tools{
         maven 'maven-3.9'
     }
+    environment {
+        EC2_HOST = '65.2.75.179'
+    }
     stages {
         stage("init") {
             steps {
@@ -43,11 +46,16 @@ pipeline {
         stage("deploy") {
             steps {
                 script {
-                    echo "deploying"
-                    gv.deployApp()
+                    echo "Deploying the docker image to EC2 Server ..."
+                    def docCmd = "bash ./server-cmds.sh anantluthra/simple-java-app:${IMAGE_NAME}"
+                    sshagent(credentials: ['ec2-server-key'], executable: '') {
+                        sh "scp docker-compose.yaml ec2-user@${EC2_HOST}:/home/ec2-user"
+                        sh "scp server-cmds.sh ec2-user@${EC2_HOST}:/home/ec2-user"
+                        sh "ssh -o StrictHostKeyChecking=no ec2-user@${EC2_HOST} ${docCmd}"
+                    }
                 }
             }
-        }
+        }    
         stage("commit version update") {
     steps {
         script {
