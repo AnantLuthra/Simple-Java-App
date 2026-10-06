@@ -1,82 +1,37 @@
-def gv
-
 pipeline {
     agent any
-    tools{
+    tools {
         maven 'maven-3.9'
     }
-    environment {
-        EC2_HOST = '65.2.75.179'
-    }
     stages {
-        stage("init") {
+        stage("build app") {
             steps {
                 script {
-                    echo "Initializing the script"
-                    echo "Checking github integration.."
-                    gv = load "script.groovy"
-                }
-            }
-        }
-        stage("increment version"){
-            steps {
-                script {
-                    echo 'Incrementing Version...'
-                    sh 'mvn build-helper:parse-version versions:set -DnewVersion=\\\${parsedVersion.majorVersion}.\\\${parsedVersion.minorVersion}.\\\${parsedVersion.nextIncrementalVersion} versions:commit'
-                    def matcher = readFile('pom.xml') =~ '<version>(.+)</version>'
-                    def version = matcher[0][1]
-                    env.IMAGE_NAME = "$version-$BUILD_NUMBER"
-                }
-            }
-        }
-        stage("build jar") {
-            steps {
-                script {
-                    gv.buildJar()
+                    echo "building app"
                 }
             }
         }
         stage("build image") {
             steps {
                 script {
-                    gv.buildImage()
+                    echo "building image"
                 }
             }
         }
         stage("deploy") {
             steps {
                 script {
-                    gv.deployApp()
+                    echo "deploying"
                 }
             }
-        }    
-        stage("commit version update") {
-    steps {
-        script {
-            withCredentials([gitUsernamePassword(
-                credentialsId: 'git-credentials',
-                gitToolName: 'Default'
-            )]) {
-                sh '''
-                    git config user.email "jenkins@example.com"
-                    git config user.name "jenkins"
-
-                    git add .
-                    git commit -m "ci: version bump"
-
-                    git push https://github.com/AnantLuthra/Simple-Java-App.git HEAD:master
-                '''
-            }
         }
-    }
-}
     }
     post {
-        success{
+        success {
             echo "All Success!"
         }
-        failure{
+        failure {
             echo "Something went wrong..."
         }
-    }  
+    }
 }
