@@ -19,15 +19,12 @@ pipeline {
             }
         }
         stage("deploy") {
-            environment {
-                AWS_ACCESS_KEY_ID = credentials('jenkins-aws_access_key_id')
-                AWS_SECRET_ACCESS_KEY = credentials('jenkins-aws_secret_access_key')
-                AWS_DEFAULT_REGION = "ap-south-1"
-            }
             steps {
                 script {
                     echo "deploying"
-                    sh 'kubectl create deployment nginx-deployment --image=nginx'
+                    withKubeConfig([credentialsId: 'lke-credentials', serverUrl: 'https://c412ee51-015d-4cc7-b3a1-1432aef8a43c.ap-west-1-gw.linodelke.net']){
+                        sh 'kubectl create deployment nginx-deployment --image=nginx'
+                    }
                 }
             }
         }
