@@ -7,6 +7,8 @@ pipeline {
     }
     environment {
         EC2_HOST = '65.2.75.179'
+        DOCKER_REPO_SERVER = '066949448876.dkr.ecr.ap-south-1.amazonaws.com'
+        DOCKER_REPO = "${DOCKER_REPO_SERVER}/java-maven-app"
     }
     stages {
         stage("init") {
@@ -41,10 +43,10 @@ pipeline {
             steps {
                 script {
                     echo "Building the docker image..."
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
-                        sh "docker build -t anantluthra/simple-java-app:${IMAGE_NAME} ."
-                        sh "echo $PASSWORD | docker login -u $USERNAME --password-stdin"
-                        sh "docker push anantluthra/simple-java-app:${IMAGE_NAME}"
+                    withCredentials([usernamePassword(credentialsId: 'ecr-credentials', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
+                        sh "docker build -t ${DOCKER_REPO}:${IMAGE_NAME} ."
+                        sh "echo $PASSWORD | docker login -u $USERNAME --password-stdin ${DOCKER_REPO_SERVER}"
+                        sh "docker push ${DOCKER_REPO}:${IMAGE_NAME}"
                     }
                 }
             }
