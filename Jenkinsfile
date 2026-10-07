@@ -80,7 +80,7 @@ pipeline {
                             git add .
                             git commit -m "ci: version bump"
 
-                            git push https://github.com/AnantLuthra/Simple-Java-App.git HEAD:ci-cd-eks
+                            git push https://github.com/AnantLuthra/Simple-Java-App.git HEAD:ci-ecr-eks
                         '''
                     }
                 }
