@@ -1,4 +1,4 @@
-def gv
+// def gv
 
 pipeline {
     agent any
@@ -14,7 +14,7 @@ pipeline {
                 script {
                     echo "Initializing the script"
                     echo "Checking github integration.."
-                    gv = load "script.groovy"
+                    // gv = load "script.groovy"
                 }
             }
         }
@@ -32,44 +32,58 @@ pipeline {
         stage("build jar") {
             steps {
                 script {
-                    gv.buildJar()
+                    echo "Building the application..."
+                    sh 'mvn clean package'
                 }
             }
         }
         stage("build image") {
             steps {
                 script {
-                    gv.buildImage()
+                    echo "Building the docker image..."
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
+                        sh "docker build -t anantluthra/simple-java-app:${IMAGE_NAME} ."
+                        sh "echo $PASSWORD | docker login -u $USERNAME --password-stdin"
+                        sh "docker push anantluthra/simple-java-app:${IMAGE_NAME}"
+                    }
                 }
             }
         }
         stage("deploy") {
+            environment {
+                AWS_ACCESS_KEY_ID = credentials('jenkins-aws_access_key_id')
+                AWS_SECRET_ACCESS_KEY = credentials('jenkins-aws_secret_access_key')
+                AWS_DEFAULT_REGION = "ap-south-1"
+                APP_NAME = 'java-maven-app'
+            }
             steps {
                 script {
-                    gv.deployApp()
+                    echo "Deploying to eks cluster"
+                    sh 'envsubst < kubernetes/deployment.yaml | kubectl apply -f -'
+                    sh 'envsubst < kubernetes/service.yaml | kubectl apply -f -'
                 }
             }
         }    
         stage("commit version update") {
-    steps {
-        script {
-            withCredentials([gitUsernamePassword(
-                credentialsId: 'git-credentials',
-                gitToolName: 'Default'
-            )]) {
-                sh '''
-                    git config user.email "jenkins@example.com"
-                    git config user.name "jenkins"
+            steps {
+                script {
+                    withCredentials([gitUsernamePassword(
+                        credentialsId: 'git-credentials',
+                        gitToolName: 'Default'
+                    )]) {
+                        sh '''
+                            git config user.email "jenkins@example.com"
+                            git config user.name "jenkins"
 
-                    git add .
-                    git commit -m "ci: version bump"
+                            git add .
+                            git commit -m "ci: version bump"
 
-                    git push https://github.com/AnantLuthra/Simple-Java-App.git HEAD:master
-                '''
+                            git push https://github.com/AnantLuthra/Simple-Java-App.git HEAD:ci-cd-eks
+                        '''
+                    }
+                }
             }
         }
-    }
-}
     }
     post {
         success{
