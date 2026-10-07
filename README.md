@@ -1,6 +1,13 @@
 # Java Maven App - Jenkins Pipeline
 
-Complete the CI/CD Pipeline: Docker Compose and Dynamic Versioning
+This is a complete Jenkins CI/CD pipeline that increments the application version, builds the Maven JAR and Docker image, pushes the image to Docker Hub, deploys the application to EC2 with Docker Compose, and commits the version update back to the repository.
+
+## Related branches
+
+- `deploy-to-k8s` - deploys an NGINX workload from Jenkins to AWS EKS using `kubectl` and AWS IAM authentication.
+- `jenkins-lke` - deploys an NGINX workload from Jenkins to Linode Kubernetes Engine (LKE) using a Jenkins-managed kubeconfig.
+- `ci-cd-eks` - Complete CI/CD pipeline that increments the Maven version, builds the JAR and Docker image, pushes the image to Docker Hub, applies the Kubernetes Deployment and Service to AWS EKS, then commits the version update.
+- `ci-ecr-eks` - Complete CI/CD pipeline that increments the Maven version, builds the JAR and Docker image, pushes the image to Amazon ECR, applies the Kubernetes Deployment and Service to AWS EKS, then commits the version update.
 
 ## Technologies used
 
