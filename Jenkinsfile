@@ -22,7 +22,7 @@ pipeline {
             steps {
                 script {
                     echo "deploying"
-                    withKubeConfig([credentialsId: 'lke-credentials', serverUrl: 'https://c412ee51-015d-4cc7-b3a1-1432aef8a43c.ap-west-1-gw.linodelke.net']){
+                    withKubeConfig([credentialsId: 'lke-credentials', serverUrl: 'https://<lke-cluster-endpoint>']){
                         sh 'kubectl create deployment nginx-deployment --image=nginx'
                     }
                 }
