@@ -1,72 +1,119 @@
-# Java Maven App - Jenkins Pipeline
+# Java Maven App - Jenkins CI/CD Pipeline for AWS EKS
 
-Complete the CI/CD Pipeline: Docker Compose and Dynamic Versioning
+Complete CI/CD pipeline for the Java Maven application: versioning, build, Docker image publishing, and deployment to Amazon EKS.
 
 ## Technologies used
 
-- AWS, Jenkins, Docker, Linux, Git, Java, Maven, Docker Hub
+- AWS EKS, Jenkins, Docker, Kubernetes, Linux, Git, Java, Maven, Docker Hub
 
-## Project Description
+## Project description
 
-This project implements a complete CI/CD flow for the Java Maven application. It covers dynamic versioning, artifact creation, Docker image publishing, and deployment through Docker Compose on EC2.
-
-## What it does
-
-- Loads local Groovy helpers from `script.groovy`.
-- Increments the Maven version before the build.
-- Builds the application with Maven.
-- Builds and pushes the Docker image to Docker Hub.
-- Deploys the new application version on EC2 using Docker Compose and `server-cmds.sh`.
-- Commits the version update back to `master`.
+This project implements a complete CI/CD flow for the Java Maven application. Jenkins increments the Maven version, builds the JAR, builds and pushes a versioned Docker image to Docker Hub, and deploys that image to an AWS EKS cluster using the Kubernetes manifests in the `kubernetes/` folder.
 
 ## Pipeline flow
 
 1. `init`
-   - Loads `script.groovy`.
-   - Prints the startup messages.
+   - Prints pipeline startup messages.
 2. `increment version`
-   - Runs the Maven version bump using `build-helper:parse-version` and `versions:set`.
-   - Reads the updated version from `pom.xml`.
-   - Sets `IMAGE_NAME` to `<version>-<build number>`.
+   - Uses `build-helper:parse-version` and `versions:set` to increment the Maven version.
+   - Reads the updated version from `pom.xml` and sets `IMAGE_NAME` to `<version>-<Jenkins build number>`.
 3. `build jar`
-   - Runs `gv.buildJar()`.
-   - Executes `mvn clean package`.
+   - Runs `mvn clean package`.
 4. `build image`
-   - Runs `gv.buildImage()`.
-   - Builds the Docker image as `anantluthra/simple-java-app:${IMAGE_NAME}`.
-   - Logs in to Docker Hub with Jenkins credentials.
-   - Pushes the image to Docker Hub.
+   - Builds `anantluthra/simple-java-app:${IMAGE_NAME}`.
+   - Logs in to Docker Hub with Jenkins credentials and pushes the image.
 5. `deploy`
-   - Copies `docker-compose.yaml` and `server-cmds.sh` to the EC2 host.
-   - Uses `server-cmds.sh` to export the target image and start the stack.
-   - Starts the updated application container with Docker Compose.
-   - Uses Docker Compose to manage the application container and the Postgres service.
+   - Supplies AWS credentials from Jenkins and targets the `ap-south-1` region.
+   - Uses `envsubst` to substitute `APP_NAME` and `IMAGE_NAME` into `kubernetes/deployment.yaml` and applies the resulting Deployment to AWS EKS with `kubectl`.
+   - Substitutes `APP_NAME` into `kubernetes/service.yaml` and applies the Service to AWS EKS.
+   - The Deployment pulls the just-published Docker Hub image and runs two replicas of the application. The Service exposes port `80` and forwards traffic to the container's port `8080`.
 6. `commit version update`
-   - Configures the Git user in the Jenkins agent.
-   - Commits the version bump.
-   - Pushes the change back to `master`.
+   - Commits the Maven version change and pushes it back to the `ci-cd-eks` branch.
+
+## Jenkins prerequisites
+
+The Jenkins controller or agent that executes this pipeline needs:
+
+- Maven configured in Jenkins as `maven-3.9`.
+- Docker installed and usable by the Jenkins user.
+- `kubectl` installed and available on the job's `PATH` so it can apply the EKS manifests.
+- `envsubst` installed and available on the job's `PATH`. It is provided by the `gettext-base` package on Debian/Ubuntu systems and is used to replace `$APP_NAME` and `$IMAGE_NAME` in the manifest templates before `kubectl apply` runs.
+- A kubeconfig file at `<jenkins-user-home>/.kube/config` inside the Jenkins container (for the standard Jenkins container user, this is usually `/var/jenkins_home/.kube/config`). `kubectl` uses this file to locate and authenticate to the EKS cluster.
+- `aws-iam-authenticator` installed inside the Jenkins container at `/usr/bin/aws-iam-authenticator`. The kubeconfig's `exec` configuration invokes this binary to obtain an AWS IAM authentication token whenever `kubectl` connects to EKS.
+
+Create these credentials in Jenkins, using the exact IDs referenced by the Jenkinsfile:
+
+- `docker-hub-repo` - Docker Hub username/password credential used to log in and push the image.
+- `jenkins-aws_access_key_id` - AWS access-key credential used during EKS deployment.
+- `jenkins-aws_secret_access_key` - AWS secret-access-key credential used during EKS deployment.
+- `git-credentials` - GitHub username/password or token credential used to push the version-bump commit.
+
+The AWS IAM identity represented by the two AWS credentials must be authorized to access the EKS cluster and create/update the Kubernetes resources used by this pipeline.
+
+## EKS kubeconfig and AWS IAM authentication
+
+The `config` file must be present inside the Jenkins container at `<jenkins-user-home>/.kube/config`; in a standard Jenkins container, use `/var/jenkins_home/.kube/config`. This pipeline relies on a kubeconfig with an `exec` authentication section like the following. Replace `<endpoint-url>` and `<cluster-name>` with the values for your EKS cluster:
+
+```yaml
+apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    certificate-authority-data: /etc/kubernetes/pki/ca.crt
+    server: <endpoint-url>
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: aws
+  name: aws
+current-context: aws
+users:
+- name: aws
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      command: /usr/bin/aws-iam-authenticator
+      args:
+        - "token"
+        - "-i"
+        - "<cluster-name>"
+```
+
+When the deploy stage runs `kubectl apply`, `kubectl` reads this kubeconfig and executes `/usr/bin/aws-iam-authenticator token -i <cluster-name>`. The authenticator uses the AWS credentials injected by Jenkins to generate an EKS authentication token. This is why both the kubeconfig file and the `aws-iam-authenticator` binary must exist inside the Jenkins container, and why the binary path in the config must match its installed location.
+
+## Kubernetes manifests and Docker Hub secret
+
+The deploy stage applies these templates:
+
+- `kubernetes/deployment.yaml` - defines the application Deployment, two replicas, and the image `anantluthra/simple-java-app:$IMAGE_NAME`.
+- `kubernetes/service.yaml` - defines the Service for `$APP_NAME` on port `80`, targeting container port `8080`.
+
+`deployment.yaml` contains the following image pull secret reference:
+
+```yaml
+imagePullSecrets:
+  - name: my-registry-key
+```
+
+Before running the pipeline, create a Docker Hub registry secret named `my-registry-key` in the target EKS namespace. It must contain Docker Hub credentials that can pull `anantluthra/simple-java-app`. For the default namespace, for example:
+
+```sh
+kubectl create secret docker-registry my-registry-key \
+  --docker-server=https://index.docker.io/v1/ \
+  --docker-username=<dockerhub-username> \
+  --docker-password=<dockerhub-password-or-token> \
+  --docker-email=<email>
+```
+
+If you deploy into another namespace, create the same secret in that namespace or update the manifest to reference the correct secret name. Keep the registry secret and Jenkins credentials out of source control.
 
 ## Repository layout
 
-- `Jenkinsfile` - declarative Jenkins pipeline.
-- `script.groovy` - local pipeline helper functions.
-- `server-cmds.sh` - remote deployment helper script.
-- `docker-compose.yaml` - Docker Compose definition for the app and Postgres.
+- `Jenkinsfile` - declarative Jenkins CI/CD pipeline.
+- `kubernetes/deployment.yaml` - EKS Deployment template.
+- `kubernetes/service.yaml` - EKS Service template.
 - `src/main` - Spring Boot application source.
 - `src/test` - application tests.
-- `Dockerfile` - container build definition.
-
-## Prerequisites
-
-- Jenkins with the Maven tool configured as `maven-3.9`.
-- Docker access on the Jenkins agent.
-- Jenkins credentials with id `docker-hub-repo`.
-- Jenkins credentials with id `git-credentials`.
-
-## Notes
-
-- `Dockerfile` uses `amazoncorretto:17-alpine-jdk`, exposes port `8080`, and runs the packaged jar from `/usr/app`.
-- The image tag is based on the application version plus the Jenkins build number.
-- The pipeline keeps the build, image, deploy, and version update logic in one place without using a shared library.
-- The deploy step uses a shell script plus Docker Compose instead of a manual container run command.
-- Other related branches in this repo are `jenkins-job` for the exploratory Jenkins job flow, `jen-shared-lib` for the shared-library based pipeline, and `cd-pipe` for the complete CI/CD flow with a project-specific shared library.
+- `Dockerfile` - application container image definition.
+- `pom.xml` - Maven project definition.
