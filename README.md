@@ -28,11 +28,12 @@ The [`Jenkinsfile`](./Jenkinsfile) runs these stages:
 3. **build & push image** - Builds and pushes
    `anantluthra/simple-java-app:2.0` to Docker Hub.
 4. **provision server** - Runs Terraform from [`terraform/`](./terraform/) to
-   provision the AWS network and EC2 server, then reads the public IP output.
+   provision the AWS network and EC2 server, then reads the `ec2_public_ip`
+   output.
 5. **deploy** - Waits for the server to initialize, copies
    [`docker-compose.yaml`](./docker-compose.yaml) and
-   [`server-cmds.sh`](./server-cmds.sh) to the EC2 host, and starts the
-   application containers.
+   [`server-cmds.sh`](./server-cmds.sh) to the EC2 host, then authenticates to
+   Docker Hub and starts the application containers.
 
 The pipeline uses the Jenkins shared library
 [`jenkins-shared-library`](https://github.com/AnantLuthra/jenkins-shared-library)
@@ -108,17 +109,17 @@ Configure the following Jenkins items:
 - AWS access-key credential: `jenkins-aws_access_key_id`
 - AWS secret-key credential: `jenkins-aws_secret_access_key`
 - Git credential: `git-credentials`
-- Jenkins credential `ssh-server-key` of type **SSH Username with private key**
+- Jenkins credential `ec2-ssh-key` of type **SSH Username with private key**
 - Terraform installed and available on the Jenkins agent
 
 The pipeline sets `TF_VAR_env_prefix=test` for the provisioning stage. Other
 Terraform values are currently supplied by [`terraform/variables.tf`](./terraform/variables.tf).
 
 Before running the pipeline, create or select an EC2 SSH key pair named
-`ssh-server-key` in the configured AWS region. Add its private key to Jenkins
-as an **SSH Username with private key** credential with:
+`ssh-server-key` in the configured AWS region. Add its matching private key to
+Jenkins as an **SSH Username with private key** credential with:
 
-- **ID:** `ssh-server-key`
+- **ID:** `ec2-ssh-key`
 - **Username:** `ec2-user`
 - **Private key:** the private key matching the EC2 key pair
 
@@ -146,8 +147,8 @@ workflow automatically:
 3. The pipeline reads the `ec2_public_ip` Terraform output.
 4. Jenkins waits for the EC2 bootstrap script to install Docker and Docker
    Compose.
-5. Jenkins connects to the instance as `ec2-user` using the
-   `ssh-server-key` credential.
+5. Jenkins connects to the instance as `ec2-user` using the `ec2-ssh-key`
+   credential and the AWS key pair named `ssh-server-key`.
 6. Jenkins copies the Compose and deployment scripts to EC2 and starts the
    application and PostgreSQL containers.
 
@@ -164,14 +165,16 @@ The provisioning and deployment stages are aligned as follows:
 - Terraform exposes the EC2 address as `ec2_public_ip`.
 - Jenkins reads that output into `EC2_PUBLIC_IP`.
 - The deploy stage uses `EC2_PUBLIC_IP` for both SSH and file transfer.
-- The EC2 instance uses the existing AWS key pair named `ssh-server-key`.
+- Terraform assigns the existing AWS key pair `ssh-server-key` to the EC2
+  instance.
+- Jenkins uses the matching private key through the `ec2-ssh-key` credential.
 - Terraform variables use explicit `default` values, and no undefined
   `public_key_location` variable is required.
 
-The `ssh-server-key` key pair must already exist in the configured AWS region,
-and the matching private key must be configured in Jenkins under the
-`ssh-server-key` credential. The names must remain identical for SSH
-deployment to work.
+The AWS key pair `ssh-server-key` and Jenkins credential `ec2-ssh-key` are
+different resources: the former is the key-pair name registered in AWS, while
+the latter stores its matching private key for Jenkins. The EC2 username is
+`ec2-user`.
 
 ## Security notes
 
