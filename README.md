@@ -14,6 +14,7 @@ application to AWS.
 - Exposes the application through its web UI and `/api/status` endpoint.
 - Automates the complete build, infrastructure, and deployment workflow through
   Jenkins and a reusable shared library.
+- Uses an Amazon S3 bucket for Terraform remote state storage.
 - The application runs on Java 17 with Spring Boot 3.5.5, uses port `8080`,
   and is packaged in an `amazoncorretto:17-alpine-jdk` container.
 
@@ -81,6 +82,29 @@ Review the security-group CIDR values before provisioning. The current values
 in [`terraform/variables.tf`](./terraform/variables.tf) are environment-specific
 and should not be treated as portable defaults.
 
+## Terraform remote state
+
+Terraform stores its state remotely in Amazon S3 instead of keeping the state
+only in the Jenkins workspace. The backend is configured in
+[`terraform/main.tf`](./terraform/main.tf) with:
+
+- **S3 bucket:** `myapp-tfstate-bucket-23420332`
+- **State key:** `myapp/state.tfstate`
+- **AWS Region:** `ap-south-1`
+
+The S3 bucket should remain private, have public access blocked, and have
+versioning enabled so previous state versions can be recovered if necessary.
+The bucket is a backend resource and is intentionally not destroyed when
+Terraform destroys the application infrastructure.
+
+On every pipeline run, `terraform init` connects the Terraform working
+directory to this S3 backend before `terraform apply` runs. This allows
+different Jenkins runs or agents to use the same infrastructure state.
+The AWS credentials used by Jenkins must also have permission to read and
+write this S3 bucket. The current backend does not configure state locking, so
+do not run concurrent Terraform apply or destroy operations against this
+state.
+
 ## Prerequisites
 
 ### Jenkins
@@ -126,6 +150,10 @@ Jenkins as an **SSH Username with private key** credential with:
 Terraform uses the existing key pair when it creates the EC2 instance. No
 separate manual Terraform provisioning step is required.
 
+Before running Jenkins, also create the Amazon S3 bucket used for Terraform
+remote state. Its name, state key, and AWS region must match the backend
+configuration in [`terraform/main.tf`](./terraform/main.tf).
+
 For a Docker-based Jenkins installation, mount the Docker socket into the
 Jenkins container or use a dedicated Jenkins agent with Docker access. Install
 Terraform, Java, Maven, Git, and the SSH client on that agent rather than
@@ -158,6 +186,20 @@ Review the Terraform defaults before changing environments; the pipeline
 currently applies the configuration automatically with
 `TF_VAR_env_prefix=test`.
 
+To remove the infrastructure created by this project, use the same Terraform
+working directory and S3 state rather than deleting AWS resources manually:
+
+```bash
+cd terraform
+terraform init
+terraform plan -destroy
+terraform destroy --auto-approve
+```
+
+Do not delete the S3 state bucket during this cleanup. Also note that the
+existing AWS key pair `ssh-server-key` is referenced by Terraform rather than
+created by it, so it remains available for the next pipeline run.
+
 ## Jenkins and Terraform wiring
 
 The provisioning and deployment stages are aligned as follows:
@@ -168,6 +210,7 @@ The provisioning and deployment stages are aligned as follows:
 - Terraform assigns the existing AWS key pair `ssh-server-key` to the EC2
   instance.
 - Jenkins uses the matching private key through the `ec2-ssh-key` credential.
+- Terraform state is shared through the configured S3 backend.
 - Terraform variables use explicit `default` values, and no undefined
   `public_key_location` variable is required.
 
@@ -180,9 +223,10 @@ the latter stores its matching private key for Jenkins. The EC2 username is
 
 - Do not commit AWS keys, Docker Hub passwords, private keys, or Terraform
   state files.
+- Protect the S3 state bucket and enable bucket versioning.
 - Restrict SSH ingress to trusted IP addresses.
 - Replace the example PostgreSQL password in
   [`docker-compose.yaml`](./docker-compose.yaml) before using this setup outside
   a learning environment.
-- Consider storing Terraform state remotely with locking for shared
-  environments.
+- Avoid concurrent Terraform operations because the current S3 backend does not
+  configure state locking.
